@@ -1,329 +1,283 @@
-<p align="center"><strong>Backed by <a href="https://vergex.trade">vergex.trade</a></strong></p>
+# NOFX on Render
 
-<h1 align="center">NOFX</h1>
+> One-click self-hosted NOFX: an AI-powered trading terminal with multi-exchange support, strategy studio, and a conversational agent.
 
-<p align="center">
-  <strong>AI trading terminal for global markets.</strong><br/>
-  <strong>Research, strategy generation, execution, and monitoring for US stocks, commodities, forex, and crypto.</strong>
-</p>
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy-template/api/github/start?template_repo=nofx-render-template)
 
-<p align="center">
-  <a href="https://github.com/NoFxAiOS/nofx/stargazers"><img src="https://img.shields.io/github/stars/NoFxAiOS/nofx?style=for-the-badge" alt="Stars"></a>
-  <a href="https://github.com/NoFxAiOS/nofx/releases"><img src="https://img.shields.io/github/v/release/NoFxAiOS/nofx?style=for-the-badge" alt="Release"></a>
-  <a href="https://github.com/NoFxAiOS/nofx/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=for-the-badge" alt="License"></a>
-  <a href="https://t.me/nofx_dev_community"><img src="https://img.shields.io/badge/Telegram-Community-blue?style=for-the-badge&logo=telegram" alt="Telegram"></a>
-</p>
+**Repository:** [github.com/ojusave/nofx](https://github.com/ojusave/nofx) (branch `dev`)  
+**Gallery mirror:** [render-examples/nofx-render-template](https://github.com/render-examples/nofx-render-template) (same tree; powers the one-click fork above)
 
-<p align="center">
-  <a href="https://golang.org/"><img src="https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go" alt="Go"></a>
-  <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React-18+-61DAFB?style=flat&logo=react" alt="React"></a>
-</p>
+This repo is the **full NOFX application** (Go API, React UI, Docker files) plus a Render Blueprint. Fork via the button to get your own copy, apply `render.yaml`, and deploy with `Dockerfile.railway` (official GHCR images + nginx + SQLite on disk).
 
-<p align="center">
-  <a href="README.md">English</a> ·
-  <a href="docs/i18n/zh-CN/README.md">中文</a> ·
-  <a href="docs/i18n/ja/README.md">日本語</a> ·
-  <a href="docs/i18n/ko/README.md">한국어</a> ·
-  <a href="docs/i18n/ru/README.md">Русский</a> ·
-  <a href="docs/i18n/uk/README.md">Українська</a> ·
-  <a href="docs/i18n/vi/README.md">Tiếng Việt</a>
-</p>
+Product overview and upstream docs: [docs/README-product.md](./docs/README-product.md) · upstream [NoFxAiOS/nofx](https://github.com/NoFxAiOS/nofx)
+
+![NOFX sign-in on Render](./assets/hero.png)
+
+**Screenshots** (from a Render deploy):
+
+![Sign in](./assets/sign-in.png)
+
+![Config — AI models and exchanges](./assets/config.png)
+
+![Agent — natural-language trader setup](./assets/agent.png)
+
+> **Gallery listing:** Catalog entry pending Sanity CMS — see [SANITY-SUBMISSION.md](./SANITY-SUBMISSION.md). Upload **`assets/hero.png`** (sign-in) for the catalog card.
 
 ---
 
-NOFX is an open-source AI trading terminal for active traders who want one workspace for market research, strategy development, execution, and portfolio monitoring.
+## Table of contents
 
-The product is built around global liquid markets: US equities, commodity contracts, FX pairs, and digital assets. The AI layer helps translate market intent into watchlists, signals, strategy logic, risk controls, and execution workflows.
+- [Why deploy NOFX on Render](#why-deploy-nofx-on-render)
+- [Use cases](#use-cases)
+- [What gets deployed](#what-gets-deployed)
+- [Quickstart](#quickstart)
+- [Configuration](#configuration)
+- [Cost breakdown](#cost-breakdown)
+- [Customization](#customization)
+- [Operations](#operations)
+- [Upgrading](#upgrading)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [Security](#security)
+- [Caveats and limitations](#caveats-and-limitations)
+- [Credits and license](#credits-and-license)
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
+---
+
+## Why deploy NOFX on Render
+
+- **Full source in this repo** — Hack on `web/`, the Go API, and Docker build files; deploy with the included Blueprint.
+- **Fast default path** — `Dockerfile.railway` pulls official `ghcr.io/nofxaios/nofx` images (no monorepo build on Render unless you change the Dockerfile).
+- **Persistent SQLite** — A 5 GB disk at `/app/data` keeps traders, strategies, and exchange configs across deploys and restarts.
+- **Secrets wired in the Blueprint** — `JWT_SECRET` and `DATA_ENCRYPTION_KEY` are auto-generated; RSA keys are created on first boot if missing.
+
+---
+
+## Use cases
+
+- **Personal AI trading lab** — Connect Hyperliquid, OKX, or other exchanges and test strategies with LLM-assisted configuration.
+- **Strategy prototyping** — Use the Agent chat to describe traders in natural language before wiring API keys in Config.
+- **Team demo environment** — Spin up an isolated NOFX instance per engineer via the one-click template fork.
+- **24/7 paper or live bots** — Keep traders running on Render's always-on Starter plan (upgrade if you need more CPU/RAM).
+
+---
+
+## What gets deployed
+
+```mermaid
+flowchart LR
+  user["Browser"] --> nginx["nginx :PORT"]
+  nginx --> ui["React UI static"]
+  nginx --> api["Go API :8081"]
+  api --> db[("SQLite on disk")]
 ```
 
-Open **http://127.0.0.1:3000**.
+| Resource | Type | Plan | Purpose |
+|----------|------|------|---------|
+| `nofx` | Web (Docker) | Starter | nginx + Go API + React UI |
+| `nofx-data` | Disk 5 GB | — | SQLite at `/app/data/data.db` |
+
+Region: **Oregon** (`oregon`). Change `region` in `render.yaml` before deploy if you need another region.
+
+Default image source: `ghcr.io/nofxaios/nofx/nofx-backend:latest` and `nofx-frontend:latest` via `Dockerfile.railway` (see [Upgrading](#upgrading) to pin tags or build from source).
 
 ---
 
-## Register exchanges
+## Quickstart
 
-Use the links below to open trading accounts for crypto and supported US stock, FX, and commodity derivative markets. These routes are part of NOFX partner programs and may include fee discounts or referral benefits.
-
-| Exchange                                                                                                                      | Status | Register with fee discount                                                          |
-| :---------------------------------------------------------------------------------------------------------------------------- | :----: | :---------------------------------------------------------------------------------- |
-| <img src="web/public/exchange-icons/binance.jpg" width="20" height="20" style="vertical-align: middle;"/> **Binance**       |   ✅   | [Register](https://www.binance.com/join?ref=NOFXENG)                                |
-| <img src="web/public/exchange-icons/bybit.png" width="20" height="20" style="vertical-align: middle;"/> **Bybit**           |   ✅   | [Register](https://partner.bybit.com/b/83856)                                       |
-| <img src="web/public/exchange-icons/okx.svg" width="20" height="20" style="vertical-align: middle;"/> **OKX**               |   ✅   | [Register](https://www.okx.com/join/1865360)                                        |
-| <img src="web/public/exchange-icons/hyperliquid.png" width="20" height="20" style="vertical-align: middle;"/> **Hyperliquid** |   ✅   | [Register](https://app.hyperliquid.xyz/join/AITRADING)                              |
-| <img src="web/public/exchange-icons/bitget.svg" width="20" height="20" style="vertical-align: middle;"/> **Bitget**         |   ✅   | [Register](https://www.bitget.com/referral/register?from=referral&clacCode=c8a43172) |
-| <img src="web/public/exchange-icons/kucoin.svg" width="20" height="20" style="vertical-align: middle;"/> **KuCoin**         |   ✅   | [Register](https://www.kucoin.com/r/broker/CXEV7XKK)                                |
-| <img src="web/public/exchange-icons/gate.svg" width="20" height="20" style="vertical-align: middle;"/> **Gate**             |   ✅   | [Register](https://www.gatenode.xyz/share/VQBGUAxY)                                 |
-| <img src="web/public/exchange-icons/aster.svg" width="20" height="20" style="vertical-align: middle;"/> **Aster**           |   ✅   | [Register](https://www.asterdex.com/en/referral/fdfc0e)                             |
-| <img src="web/public/exchange-icons/lighter.png" width="20" height="20" style="vertical-align: middle;"/> **Lighter**       |   ✅   | [Register](https://app.lighter.xyz/?referral=68151432)                              |
+1. Click **[Deploy to Render](https://render.com/deploy-template/api/github/start?template_repo=nofx-render-template)** (forks the gallery mirror into your GitHub account), **or** connect this repo directly: Blueprint → `https://github.com/ojusave/nofx` branch **`dev`**.
+2. Review auto-generated secrets (`JWT_SECRET`, `DATA_ENCRYPTION_KEY`). Do not change them after first deploy unless you understand the migration impact.
+3. Click **Apply**. First deploy typically takes **5–10 minutes** (Docker pull, disk attach, container start).
+4. Open your service URL (`https://nofx-xxxx.onrender.com/`). If the system is not initialized, you will see the **registration** screen — create the single admin account (only one user is allowed).
+5. Sign in, open **Config**, add **AI models** and **exchange keys**, then **Create Trader** or use the **Agent** tab.
 
 ---
 
-## Quick demo
+## Configuration
 
-<p align="center">
-  <a href="https://drive.google.com/file/d/1frzw-HDZ3viQvLOQKsAJGc9bT0dXs68D/view">
-    <img src="screenshots/demo-cover.png" alt="NOFX quick demo video" width="900"/>
-  </a>
-</p>
+### Required secrets
 
-<p align="center">
-  Click the cover image to watch the demo video.
-</p>
+None at Blueprint apply time. LLM and exchange credentials are configured in the NOFX UI after login.
 
----
+### Auto-generated secrets
 
-## Markets
+| Env var | Purpose |
+|---------|---------|
+| `JWT_SECRET` | Session tokens for the API |
+| `DATA_ENCRYPTION_KEY` | Encrypts sensitive fields at rest |
+| `RSA_PRIVATE_KEY` | Generated on first boot by `railway/start.sh` if unset |
 
-**US Stocks · Commodities · Forex · Crypto**
+**Do not rotate `JWT_SECRET` or `DATA_ENCRYPTION_KEY` casually** after traders and exchange keys are stored: existing sessions and encrypted data may break.
 
-NOFX organizes research, strategy construction, execution, and monitoring around multi-asset workflows instead of single-venue screens.
+### Wired automatically
 
----
+| Env var | Value / source |
+|---------|----------------|
+| `DB_TYPE` | `sqlite` |
+| `DB_PATH` | `/app/data/data.db` |
+| `TZ` | `UTC` |
+| `TRANSPORT_ENCRYPTION` | `false` (TLS terminates at Render) |
+| `AI_MAX_TOKENS` | `8000` |
+| `PORT` | Set by Render; nginx listens here |
 
-## AI model access
+### Optional tweaks
 
-NOFX routes AI inference through [Claw402](https://claw402.ai) automatically. Users do not need to configure model providers, manage API keys, or maintain separate AI accounts. The terminal accesses supported models on demand through Claw402's pay-as-you-go infrastructure, with traffic routed through the official discounted channel.
+| Env var | Default | Notes |
+|---------|---------|-------|
+| `TRANSPORT_ENCRYPTION` | `false` | Leave off on Render; HTTPS is provided by the platform |
+| `AI_MAX_TOKENS` | `8000` | Raise if long agent responses truncate |
+| Plan | `starter` | Bump to `standard` if the container OOMs during heavy agent workloads |
 
-| Provider | Access |
-| :------- | :----- |
-| **Claw402** | [Access pay-as-you-go AI models with official discount](https://claw402.ai) |
-
----
-
-## Capabilities
-
-| Capability                  | Description                                                                 |
-| :-------------------------- | :-------------------------------------------------------------------------- |
-| **AI trading terminal**     | Unified workspace for US stocks, commodities, forex, and crypto workflows   |
-| **AI model access**         | Unified model access through Claw402-supported providers                    |
-| **Exchange connectivity**   | Binance, Bybit, OKX, Hyperliquid, Bitget, KuCoin, Gate, Aster, and Lighter  |
-| **Strategy Studio**         | Market universes, indicators, risk controls, and strategy logic             |
-| **Model competition**       | Compare model-driven traders with live performance and leaderboard tracking  |
-| **Telegram agent**          | Control and monitor the trading assistant through chat                      |
-| **Portfolio dashboard**     | Positions, P/L, execution history, and model decision logs                  |
+Configure in the UI (not env vars): OpenAI, Anthropic, DeepSeek, custom LLM endpoints, exchange API keys, Telegram bot token.
 
 ---
 
-## Screenshots
+## Cost breakdown
 
-<details>
-<summary><b>Config Page</b></summary>
+| Resource | Plan | Approx. monthly (USD) |
+|----------|------|------------------------|
+| Web service | Starter | ~$7 |
+| Persistent disk | 5 GB | ~$5 |
+| **Total** | | **~$12** |
 
-|                         Configuration                         |                         Traders List                         |
-| :----------------------------------------------------------: | :----------------------------------------------------------: |
-| <img src="screenshots/config-ai-exchanges.png" width="400"/> | <img src="screenshots/config-traders-list.png" width="400"/> |
+Free tier is not recommended: the service sleeps after inactivity and cold starts can cause transient API errors during login or registration.
 
-</details>
-
-<details>
-<summary><b>Dashboard</b></summary>
-
-|                        Overview                         |                          Market Chart                           |
-| :-----------------------------------------------------: | :-------------------------------------------------------------: |
-| <img src="screenshots/dashboard-page.png" width="400"/> | <img src="screenshots/dashboard-market-chart.png" width="400"/> |
-
-|                          Trading Stats                           |                          Position History                           |
-| :--------------------------------------------------------------: | :-----------------------------------------------------------------: |
-| <img src="screenshots/dashboard-trading-stats.png" width="400"/> | <img src="screenshots/dashboard-position-history.png" width="400"/> |
-
-|                          Positions                           |                    Trader Details                     |
-| :----------------------------------------------------------: | :---------------------------------------------------: |
-| <img src="screenshots/dashboard-positions.png" width="400"/> | <img src="screenshots/details-page.png" width="400"/> |
-
-</details>
-
-<details>
-<summary><b>Strategy Studio</b></summary>
-
-|                     Strategy Editor                      |                      Indicators Config                       |
-| :------------------------------------------------------: | :----------------------------------------------------------: |
-| <img src="screenshots/strategy-studio.png" width="400"/> | <img src="screenshots/strategy-indicators.png" width="400"/> |
-
-</details>
-
-<details>
-<summary><b>Competition</b></summary>
-
-|                     Competition Mode                      |
-| :-------------------------------------------------------: |
-| <img src="screenshots/competition-page.png" width="400"/> |
-
-</details>
+External costs (LLM API usage, exchange fees, Telegram) are billed by those providers, not Render.
 
 ---
 
-## Install
+## Customization
 
-### Linux / macOS
+### Pin upstream image versions
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
+Edit `Dockerfile.railway` and replace `:latest` with a specific tag from [NOFX GHCR packages](https://github.com/orgs/NoFxAiOS/packages):
+
+```dockerfile
+FROM ghcr.io/nofxaios/nofx/nofx-backend:1.0.0 AS backend
+FROM ghcr.io/nofxaios/nofx/nofx-frontend:1.0.0 AS frontend
 ```
 
-### Railway (Cloud)
+Redeploy after changing tags.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/nofx?referralCode=nofx)
+### Build from source on Render
 
-### Docker
+Use `docker/Dockerfile.backend` and `docker/Dockerfile.frontend` instead of GHCR pulls if you need a custom build. That increases deploy time and plan requirements; the default `Dockerfile.railway` path is recommended for gallery deploys.
 
-```bash
-curl -O https://raw.githubusercontent.com/NoFxAiOS/nofx/main/docker-compose.prod.yml
-docker compose -f docker-compose.prod.yml up -d
-```
+### Custom domain
 
-### Windows
+In the Render dashboard: **Settings → Custom Domains** on the `nofx` service. TLS certificates are managed by Render.
 
-Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), then:
+### Larger SQLite or uploads
 
-```powershell
-curl -o docker-compose.prod.yml https://raw.githubusercontent.com/NoFxAiOS/nofx/main/docker-compose.prod.yml
-docker compose -f docker-compose.prod.yml up -d
-```
+Increase `disk.sizeGB` in `render.yaml` (requires Blueprint update and redeploy). SQLite stays at `DB_PATH=/app/data/data.db`.
 
-### From Source
+### Switch region
 
-```bash
-# Prerequisites: Go 1.21+, Node.js 18+, TA-Lib
-# macOS: brew install ta-lib
-# Ubuntu: sudo apt-get install libta-lib0-dev
-
-git clone https://github.com/NoFxAiOS/nofx.git && cd nofx
-go build -o nofx && ./nofx          # backend
-cd web && npm install && npm run dev  # frontend (new terminal)
-```
-
-### Update
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
-```
+Change `region` under the web service in `render.yaml` before first deploy, or migrate manually by creating a new service in the target region.
 
 ---
 
-## Setup
+## Operations
 
-**Beginner mode**: Guided onboarding walks new users through model selection, exchange connection, strategy setup, and first deployment.
+### Backups
 
-**Advanced mode**:
+Copy `/app/data/data.db` periodically via Render Shell or a one-off job. Render disk snapshots are not a substitute for application-level backup if you rely on trader history.
 
-1. Configure AI model access
-2. Connect exchange credentials
-3. Build or import a strategy
-4. Create an AI trader profile
-5. Launch, monitor, and iterate from the dashboard
+### Monitoring
 
-All configuration is available from the web UI at **http://127.0.0.1:3000**.
+- Health check: `GET /health` (nginx only, returns 200)
+- Backend check: `GET /api/health` on your service URL
+- Logs: Render dashboard → **Logs** for the `nofx` service
 
----
+### Scaling
 
-## Deploy to server
+This template runs a **single instance** with SQLite on a mounted disk. Horizontal scaling is not supported without migrating to Postgres and re-architecting. Vertical scaling: upgrade plan in the dashboard.
 
-**HTTP deployment:**
+### Logs
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoFxAiOS/nofx/main/install.sh | bash
-# Access via http://YOUR_IP:3000
-```
-
-**HTTPS via Cloudflare:**
-
-1. Add domain to [Cloudflare](https://dash.cloudflare.com) (free plan)
-2. A record → your server IP (Proxied)
-3. SSL/TLS → Flexible
-4. Set `TRANSPORT_ENCRYPTION=true` in `.env`
+Container stdout includes nginx and Go API output. Use structured log search in the Render dashboard for `REGISTRATION_ERROR` or `502` during cold starts.
 
 ---
 
-## Architecture
+## Upgrading
 
-```
-                              NOFX
-    ┌─────────────────────────────────────────────────┐
-    │                 Trading Terminal                 │
-    │        React + TypeScript + TradingView          │
-    │      US Stocks · Commodities · Forex · Crypto    │
-    ├─────────────────────────────────────────────────┤
-    │                  API Server (Go)                  │
-    ├──────────────┬──────────────┬───────────────────┤
-    │   Strategy    │   Telegram   │   Trader Runtime  │
-    │    Engine     │    Agent     │   Risk Controls   │
-    ├──────────────┴──────────────┴───────────────────┤
-    │                 AI Model Layer                    │
-    │    Unified provider access through Claw402        │
-    │    Model routing · payment · execution support    │
-    ├─────────────────────────────────────────────────┤
-    │              Exchange Connectivity                │
-    │ Binance · Bybit · OKX · Hyperliquid · Bitget     │
-    │ KuCoin · Gate · Aster · Lighter                  │
-    └─────────────────────────────────────────────────┘
-```
+1. Check [NoFxAiOS/nofx releases](https://github.com/NoFxAiOS/nofx/releases) for new GHCR tags.
+2. Pin or update tags in `Dockerfile.railway` in your fork, or merge upstream into `dev`.
+3. Trigger **Manual Deploy** on Render.
+
+Read upstream release notes for database migrations or breaking API changes before upgrading production traders.
 
 ---
 
-## Docs
+## Troubleshooting
 
-|                                                         |                                       |
-| :------------------------------------------------------ | :------------------------------------ |
-| [Architecture](docs/architecture/README.md)             | System design and module index        |
-| [Strategy Module](docs/architecture/STRATEGY_MODULE.md) | Coin selection, AI prompts, execution |
-| [FAQ](docs/faq/README.md)                               | Common questions                      |
-| [Getting Started](docs/getting-started/README.md)       | Deployment guide                      |
+### Registration shows "Server error"
 
----
+Often a cold start on Starter/Free: wait 30–60 seconds and retry. Confirm `GET /api/health` returns 200. If the system is already initialized (`GET /api/config` → `"initialized": true`), use **Login** instead of Register.
 
-## Contributing
+### Toast: "API Not Found" (404)
 
-See [Contributing Guide](CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), and [Security Policy](SECURITY.md).
+The frontend treats any HTTP 404 as this message. Some routes (for example legacy prompt-template endpoints) may 404 while the app is still usable. Verify core endpoints: `/api/config`, `/api/health`.
 
-### Contributor Airdrop Program
+### Health check passes but UI cannot log in
 
-NOFX tracks meaningful contributions and intends to reward contributors as the ecosystem grows. Priority issues carry higher reward weight.
+Ensure the disk is mounted at `/app/data` and `DB_PATH` matches. A missing disk resets SQLite on every deploy.
 
-| Contribution      | Weight |
-| :---------------- | :----: |
-| Pinned Issue PRs  | ★★★★★★ |
-| Code (Merged PRs) | ★★★★★  |
-| Bug Fixes         |  ★★★★  |
-| Feature Ideas     |  ★★★   |
-| Bug Reports       |   ★★   |
-| Documentation     |   ★★   |
+### Docker pull fails for GHCR images
+
+Confirm `ghcr.io/nofxaios/nofx/*` images are public and the tag exists. Pin to a known-good tag if `:latest` moved.
+
+### Out of memory
+
+Upgrade from Starter to Standard if the Go process or agent workloads exit during startup.
 
 ---
 
-## Links
+## FAQ
 
-|           |                                                       |
-| :-------- | :---------------------------------------------------- |
-| Website   | [vergex.trade](https://vergex.trade)                  |
-| Dashboard | [vergex.trade/explore](https://vergex.trade/explore)  |
-| Telegram  | [nofx_dev_community](https://t.me/nofx_dev_community) |
-| Twitter   | [@vergex_ai](https://x.com/vergex_ai)                 |
+**Can I have multiple admin users?**  
+NOFX uses single-user onboarding: the first registration closes public signup.
 
-> **Risk warning**: Automated trading involves substantial risk. Use appropriate position sizing, understand each exchange venue, and do not trade funds you cannot afford to lose.
+**Where do I set OpenAI or Hyperliquid keys?**  
+In the web UI under **Config** after login, not in Render env vars.
+
+**Does `/health` prove the API is up?**  
+No. It only checks nginx. Use `/api/health` for the Go backend.
+
+**Can I reset a forgotten password on Render?**  
+Use the upstream CLI (`nofx reset-password`) via Render Shell if documented in the NOFX repo; there is no public forgot-password flow on ephemeral demos.
+
+**Is this financial advice?**  
+No. NOFX is trading software. You are responsible for compliance, risk, and API key security.
+
+**Why AGPL?**  
+This project is AGPL-3.0. Running or distributing modified NOFX may have copyleft obligations — see [LICENSE](./LICENSE).
 
 ---
 
-## Sponsors
+## Security
 
-<a href="https://github.com/pjl914335852-ux"><img src="https://github.com/pjl914335852-ux.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/cat9999aaa"><img src="https://github.com/cat9999aaa.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/1733055465"><img src="https://github.com/1733055465.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/kolal2020"><img src="https://github.com/kolal2020.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/CyberFFarm"><img src="https://github.com/CyberFFarm.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/vip3001003"><img src="https://github.com/vip3001003.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/mrtluh"><img src="https://github.com/mrtluh.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/cpcp1117-source"><img src="https://github.com/cpcp1117-source.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/match-007"><img src="https://github.com/match-007.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/leiwuhen1715"><img src="https://github.com/leiwuhen1715.png" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/SHAOXIA1991"><img src="https://github.com/SHAOXIA1991.png" width="50" height="50" style="border-radius:50%"/></a>
+- TLS terminates at Render; keep `TRANSPORT_ENCRYPTION=false` unless you add internal mTLS.
+- Store exchange and LLM keys only in the encrypted UI/config layer; do not commit them to your fork.
+- Rotate compromised API keys at the provider; consider redeploying with new `DATA_ENCRYPTION_KEY` only if you understand data loss implications.
+- Report vulnerabilities via the [NoFxAiOS/nofx](https://github.com/NoFxAiOS/nofx) security policy.
 
-[Become a sponsor](https://github.com/sponsors/NoFxAiOS)
+---
 
-## License
+## Caveats and limitations
 
-[AGPL-3.0](LICENSE)
+- **SQLite + single disk** — One Render instance only; not HA.
+- **`:latest` images** — Reproducibility requires pinning tags in your fork.
+- **Starter spin-down** — Free/idle services cause slow first requests.
+- **Trading risk** — Live keys on a cloud VM require your own security review.
+- **AGPL** — Distribution of modified NOFX may require source disclosure; consult your legal team.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=NoFxAiOS/nofx&type=Date)](https://star-history.com/#NoFxAiOS/nofx&Date)
+---
+
+## Credits and license
+
+- **Application:** [NoFxAiOS/nofx](https://github.com/NoFxAiOS/nofx) (AGPL-3.0) · this fork: [ojusave/nofx](https://github.com/ojusave/nofx)
+- **Render Blueprint:** `render.yaml`, `Dockerfile.railway`, `railway/start.sh`
+- **Gallery:** [render-examples/nofx-render-template](https://github.com/render-examples/nofx-render-template) · [SANITY-SUBMISSION.md](./SANITY-SUBMISSION.md)
+
+To appear on [render.com/templates](https://render.com/templates), complete the Sanity steps in [SANITY-SUBMISSION.md](./SANITY-SUBMISSION.md).
