@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+#
+# NOFX on Render — all-in-one web service (React UI + Go API via nginx)
+# Repo: https://github.com/ojusave/nofx
+#
+# Deploy: Render Dashboard → New → Blueprint → connect this repo (branch: dev).
+#
+# Required secrets at Apply time:
+#   JWT_SECRET            — openssl rand -base64 48  (min 32 bytes)
+#   DATA_ENCRYPTION_KEY   — openssl rand -base64 32
+#   RSA_PRIVATE_KEY       — openssl genrsa 2048 (paste PEM; use \n for newlines)
+# If DATA_ENCRYPTION_KEY / RSA_PRIVATE_KEY are omitted, start.sh generates them
+# on first boot only; save them in the Render dashboard before redeploying or
+# encrypted exchange credentials in SQLite will become unreadable.
+#
+# Optional Postgres: add a database below, set DB_TYPE=postgres, and wire
+# DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME/DB_SSLMODE from the database.
+
+previews:
+  generation: off
+
+projects:
+  - name: nofx
+    environments:
+      - name: production
+        services:
+          - type: web
+            name: nofx
+            runtime: docker
+            dockerfilePath: ./Dockerfile.render
+            plan: starter
+            region: oregon
+            healthCheckPath: /health
+            maxShutdownDelaySeconds: 30
+            disk:
+              name: nofx-data
+              mountPath: /app/data
+              sizeGB: 5
+            envVars:
+              - key: DB_TYPE
+                value: sqlite
+              - key: DB_PATH
+                value: /app/data/data.db
+              - key: TZ
+                value: UTC
+              - key: TRANSPORT_ENCRYPTION
+                value: "false"
+              - key: AI_MAX_TOKENS
+                value: "8000"
+              - key: JWT_SECRET
+                sync: false
+              - key: DATA_ENCRYPTION_KEY
+                sync: false
+              - key: RSA_PRIVATE_KEY
+                sync: false
