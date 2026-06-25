@@ -1,25 +1,24 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
 #
-# NOFX on Render — full source repo + Blueprint (branch: dev)
-# Repo: https://github.com/ojusave/nofx
-# Gallery mirror: https://github.com/render-examples/nofx-render-template
+# NOFX on Render
+# Repo: https://github.com/render-examples/nofx-render-template
+# Upstream: https://github.com/NoFxAiOS/nofx
 #
-# Deploy: Blueprint → this repo, branch dev — or one-click template (nofx-render-template).
 # JWT_SECRET and DATA_ENCRYPTION_KEY are auto-generated at apply time.
-# RSA_PRIVATE_KEY is auto-generated on first boot by railway/start.sh if unset.
+# RSA_PRIVATE_KEY is auto-generated on first boot by docker/render-start.sh if unset.
 
 previews:
   generation: off
 
 projects:
-  - name: nofx
+  - name: nofx-render-template
     environments:
       - name: production
         services:
           - type: web
             name: nofx
             runtime: docker
-            dockerfilePath: ./Dockerfile.railway
+            dockerfilePath: ./Dockerfile.render
             plan: starter
             region: oregon
             healthCheckPath: /health
