@@ -1,20 +1,16 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
 #
-# NOFX on Render — all-in-one web service (React UI + Go API via nginx)
+# NOFX on Render — uses the existing Railway all-in-one image (Dockerfile.railway).
 # Repo: https://github.com/ojusave/nofx
 #
 # Deploy: Render Dashboard → New → Blueprint → connect this repo (branch: dev).
 #
-# Required secrets at Apply time:
-#   JWT_SECRET            — openssl rand -base64 48  (min 32 bytes)
-#   DATA_ENCRYPTION_KEY   — openssl rand -base64 32
-#   RSA_PRIVATE_KEY       — openssl genrsa 2048 (paste PEM; use \n for newlines)
-# If DATA_ENCRYPTION_KEY / RSA_PRIVATE_KEY are omitted, start.sh generates them
-# on first boot only; save them in the Render dashboard before redeploying or
-# encrypted exchange credentials in SQLite will become unreadable.
+# Required at Apply time:
+#   JWT_SECRET — openssl rand -base64 48  (min 32 bytes)
 #
-# Optional Postgres: add a database below, set DB_TYPE=postgres, and wire
-# DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME/DB_SSLMODE from the database.
+# Optional (recommended for production): set DATA_ENCRYPTION_KEY and RSA_PRIVATE_KEY
+# in the dashboard so they survive redeploys. If omitted, railway/start.sh generates
+# them on boot; save them before the next deploy or encrypted credentials break.
 
 previews:
   generation: off
@@ -27,11 +23,10 @@ projects:
           - type: web
             name: nofx
             runtime: docker
-            dockerfilePath: ./Dockerfile.render
+            dockerfilePath: ./Dockerfile.railway
             plan: starter
             region: oregon
             healthCheckPath: /health
-            maxShutdownDelaySeconds: 30
             disk:
               name: nofx-data
               mountPath: /app/data
